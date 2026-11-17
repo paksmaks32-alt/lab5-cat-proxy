@@ -108,6 +108,19 @@ async function handlePut(req, res, code) {
   sendText(res, 201, `Картинку для коду ${code} збережено в кеш`);
 }
 
+async function handleDelete(res, code) {
+  try {
+    await fs.unlink(cacheFile(code));
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      sendText(res, 404, `Картинки для коду ${code} немає в кеші`);
+      return;
+    }
+    throw err;
+  }
+  sendText(res, 200, `Картинку для коду ${code} видалено з кешу`);
+}
+
 // 4. Обробник запиту
 
 async function handleRequest(req, res) {
@@ -126,7 +139,7 @@ async function handleRequest(req, res) {
 
   if (req.method === 'GET') await handleGet(res, code);
   else if (req.method === 'PUT') await handlePut(req, res, code);
-  else sendText(res, 501, `Метод ${req.method} ще не реалізовано`); // тимчасово
+  else await handleDelete(res, code);
 }
 
 // 5. Запуск: тека кешу, потім сервер
