@@ -1,0 +1,25 @@
+{
+  "name": "lab5-cat-proxy",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paksmaks32-alt/lab5-cat-proxy.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/paksmaks32-alt/lab5-cat-proxy/issues"
+  },
+  "homepage": "https://github.com/paksmaks32-alt/lab5-cat-proxy#readme",
+  "dependencies": {
+    "commander": "^15.1.0",
+    "superagent": "^10.4.2"
+  }
+}
