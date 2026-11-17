@@ -1,0 +1,260 @@
+{
+  "info": {
+    "_postman_id": "ee57d6d0-a6db-44cb-99c5-8c21633ee39b",
+    "name": "ЛР5 Кешуючий проксі http.cat",
+    "description": "Перевірка методів GET, PUT, DELETE і помилок. Перед запуском очистити теку cache.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "60101176",
+    "_collection_link": "https://go.postman.co/collection/60101176-ee57d6d0-a6db-44cb-99c5-8c21633ee39b?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "1. GET картинки, якої немає в кеші",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Код стану 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Content-Type: image/jpeg', () => pm.expect(pm.response.headers.get('Content-Type')).to.eql('image/jpeg'));",
+              "pm.test('X-Cache-Source: http.cat', () => pm.expect(pm.response.headers.get('X-Cache-Source')).to.eql('http.cat'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/418",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "418"
+          ]
+        },
+        "description": "Промах кешу: сервер бере картинку з http.cat і зберігає її в кеш."
+      },
+      "response": []
+    },
+    {
+      "name": "2. Повторний GET тієї самої картинки",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Код стану 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Content-Type: image/jpeg', () => pm.expect(pm.response.headers.get('Content-Type')).to.eql('image/jpeg'));",
+              "pm.test('X-Cache-Source: cache', () => pm.expect(pm.response.headers.get('X-Cache-Source')).to.eql('cache'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/418",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "418"
+          ]
+        },
+        "description": "Влучання кешу: картинка віддається з диска."
+      },
+      "response": []
+    },
+    {
+      "name": "3. PUT власної картинки",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Код стану 201 Created', () => pm.response.to.have.status(201));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "body": {
+          "mode": "file",
+          "file": {
+            "src": "my.jpg"
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/500",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "500"
+          ]
+        },
+        "description": "Тіло запиту — двійковий файл my.jpg."
+      },
+      "response": []
+    },
+    {
+      "name": "4. GET після PUT",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Код стану 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Content-Type: image/jpeg', () => pm.expect(pm.response.headers.get('Content-Type')).to.eql('image/jpeg'));",
+              "pm.test('X-Cache-Source: cache', () => pm.expect(pm.response.headers.get('X-Cache-Source')).to.eql('cache'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/500",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "500"
+          ]
+        },
+        "description": "Повертається власна картинка з кешу, а не кіт з http.cat."
+      },
+      "response": []
+    },
+    {
+      "name": "5. DELETE картинки",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Код стану 200 OK', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/500",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "500"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "6. DELETE картинки, якої немає",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Код стану 404 Not Found', () => pm.response.to.have.status(404));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/500",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "500"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "7. GET неіснуючого коду",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Код стану 404 Not Found', () => pm.response.to.have.status(404));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/999",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "999"
+          ]
+        },
+        "description": "http.cat не має картинки для 999; у кеш нічого не зберігається."
+      },
+      "response": []
+    },
+    {
+      "name": "8. Недозволений метод POST",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Код стану 405 Method Not Allowed', () => pm.response.to.have.status(405));",
+              "pm.test('Заголовок Allow', () => pm.expect(pm.response.headers.get('Allow')).to.eql('GET, PUT, DELETE'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/200",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "200"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:3000"
+    }
+  ]
+}
