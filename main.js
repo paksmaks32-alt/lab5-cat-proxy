@@ -6,6 +6,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { once } from 'node:events';
 import { Command } from 'commander';
+import superagent from 'superagent';
 
 // 1. Параметри командного рядка
 
@@ -28,6 +29,7 @@ if (!Number.isInteger(port) || port < 0 || port > 65535) {
   process.exit(1);
 }
 
+const UPSTREAM = 'https://http.cat';
 const ALLOWED_METHODS = 'GET, PUT, DELETE';
 
 // 2. Допоміжні функції
@@ -38,10 +40,53 @@ function sendText(res, statusCode, message, headers = {}) {
   res.end(message);
 }
 
+// Відповідь з картинкою; source — звідки її взято (cache або http.cat).
+function sendImage(res, image, source) {
+  res.writeHead(200, { 'Content-Type': 'image/jpeg', 'X-Cache-Source': source });
+  res.end(image);
+}
+
 // Шлях /404 → '404'; будь-що інше → null.
 function parseCode(pathname) {
   const match = pathname.match(/^\/(\d{3})$/);
   return match ? match[1] : null;
+}
+
+// Повний шлях до файлу картинки в теці кешу.
+function cacheFile(code) {
+  return path.join(options.cache, `${code}.jpg`);
+}
+
+// Запис через тимчасовий файл: інший запит ніколи не побачить файл, записаний наполовину.
+async function writeAtomic(file, data) {
+  const temp = `${file}.${process.pid}.${Date.now()}.tmp`;
+  await fs.writeFile(temp, data);
+  await fs.rename(temp, file);
+}
+
+// 3. Обробники методів
+
+async function handleGet(res, code) {
+  const file = cacheFile(code);
+  try {
+    const image = await fs.readFile(file);
+    sendImage(res, image, 'cache');
+    return;
+  } catch (err) {
+    if (err.code !== 'ENOENT') throw err; // промах кешу — йдемо на http.cat
+  }
+
+  let response;
+  try {
+    response = await superagent.get(`${UPSTREAM}/${code}`).buffer(true).responseType('blob').timeout(10000);
+  } catch (err) {
+    const reason = err.status ? `http.cat відповів ${err.status}` : `немає зв'язку з http.cat (${err.code ?? err.message})`;
+    sendText(res, 404, `Картинку для коду ${code} не знайдено: ${reason}`);
+    return;
+  }
+
+  await writeAtomic(file, response.body);
+  sendImage(res, response.body, 'http.cat');
 }
 
 // 4. Обробник запиту
@@ -60,7 +105,8 @@ async function handleRequest(req, res) {
     return;
   }
 
-  sendText(res, 501, `Метод ${req.method} ще не реалізовано`); // тимчасово
+  if (req.method === 'GET') await handleGet(res, code);
+  else sendText(res, 501, `Метод ${req.method} ще не реалізовано`); // тимчасово
 }
 
 // 5. Запуск: тека кешу, потім сервер
