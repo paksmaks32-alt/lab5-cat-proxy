@@ -64,6 +64,15 @@ async function writeAtomic(file, data) {
   await fs.rename(temp, file);
 }
 
+// Збирає тіло запиту (потік) в один Buffer.
+async function readBody(req) {
+  const chunks = [];
+  for await (const chunk of req) {
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
+}
+
 // 3. Обробники методів
 
 async function handleGet(res, code) {
@@ -89,6 +98,16 @@ async function handleGet(res, code) {
   sendImage(res, response.body, 'http.cat');
 }
 
+async function handlePut(req, res, code) {
+  const image = await readBody(req);
+  if (image.length === 0) {
+    sendText(res, 400, 'Тіло запиту порожнє: надішліть картинку');
+    return;
+  }
+  await writeAtomic(cacheFile(code), image);
+  sendText(res, 201, `Картинку для коду ${code} збережено в кеш`);
+}
+
 // 4. Обробник запиту
 
 async function handleRequest(req, res) {
@@ -106,6 +125,7 @@ async function handleRequest(req, res) {
   }
 
   if (req.method === 'GET') await handleGet(res, code);
+  else if (req.method === 'PUT') await handlePut(req, res, code);
   else sendText(res, 501, `Метод ${req.method} ще не реалізовано`); // тимчасово
 }
 
